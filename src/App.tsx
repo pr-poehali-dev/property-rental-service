@@ -22,17 +22,29 @@ const listings = [
 
 function Nav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
   const links: { id: Page; label: string; icon: string }[] = [
     { id: "home", label: "Главная", icon: "Home" },
     { id: "catalog", label: "Каталог", icon: "Search" },
     { id: "profile", label: "Профиль", icon: "User" },
     { id: "contacts", label: "Контакты", icon: "Mail" },
-    { id: "admin", label: "Админ", icon: "LayoutDashboard" },
   ];
+
+  const handleLogoClick = () => {
+    const next = logoClicks + 1;
+    if (next >= 5) {
+      setLogoClicks(0);
+      setPage("admin");
+    } else {
+      setLogoClicks(next);
+      setTimeout(() => setLogoClicks(0), 3000);
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <button onClick={() => setPage("home")} className="flex items-center gap-2 font-montserrat font-800 text-xl">
+        <button onClick={handleLogoClick} className="flex items-center gap-2 font-montserrat font-800 text-xl">
           <span className="gradient-text font-black text-2xl">НаймиДом</span>
         </button>
         <div className="hidden md:flex items-center gap-1">
