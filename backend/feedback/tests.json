@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Пустые поля — ошибка",
+      "method": "POST",
+      "path": "/",
+      "body": {"name": "", "email": "", "message": ""},
+      "expectedStatus": 400,
+      "expectedBody": {"error": "Все поля обязательны"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Успешная отправка",
+      "method": "POST",
+      "path": "/",
+      "body": {"name": "Тест Тестов", "email": "test@example.com", "message": "Тестовое сообщение"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

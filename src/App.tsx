@@ -604,7 +604,33 @@ function ProfilePage() {
   );
 }
 
+const FEEDBACK_URL = "https://functions.poehali.dev/a801230b-6055-4a2f-9ced-cd7abb0ea82b";
+
 function ContactsPage() {
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch(FEEDBACK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus("error"); setErrorMsg(data.error || "Ошибка сервера"); return; }
+      setStatus("success");
+      setForm({ name: "", email: "", message: "" });
+    } catch {
+      setStatus("error");
+      setErrorMsg("Не удалось отправить. Попробуйте позже.");
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20 pb-12">
       <div className="relative overflow-hidden py-12 mb-12">
@@ -619,34 +645,74 @@ function ContactsPage() {
         <div className="grid lg:grid-cols-2 gap-12">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
             <h2 className="font-montserrat font-bold text-2xl text-gray-900 mb-6">Написать нам</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Ваше имя</label>
-                <input
-                  placeholder="Алексей Морозов"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
-                />
+
+            {status === "success" ? (
+              <div className="text-center py-12 animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <Icon name="CheckCircle" size={32} className="text-white" />
+                </div>
+                <h3 className="font-montserrat font-black text-xl text-gray-900 mb-2">Сообщение отправлено!</h3>
+                <p className="text-gray-500 text-sm mb-6">Мы ответим вам в течение часа.</p>
+                <button
+                  onClick={() => setStatus("idle")}
+                  className="btn-gradient px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md"
+                >
+                  Отправить ещё
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Email</label>
-                <input
-                  placeholder="alex@example.com"
-                  type="email"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Сообщение</label>
-                <textarea
-                  rows={5}
-                  placeholder="Опишите ваш вопрос или предложение..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm resize-none"
-                />
-              </div>
-              <button className="w-full btn-gradient py-4 rounded-2xl font-montserrat font-bold text-base shadow-xl">
-                Отправить сообщение
-              </button>
-            </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Ваше имя</label>
+                  <input
+                    required
+                    placeholder="Алексей Морозов"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Email</label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="alex@example.com"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Сообщение</label>
+                  <textarea
+                    required
+                    rows={5}
+                    placeholder="Опишите ваш вопрос или предложение..."
+                    value={form.message}
+                    onChange={(e) => setForm({ ...form, message: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm resize-none"
+                  />
+                </div>
+                {status === "error" && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+                    <Icon name="AlertCircle" size={16} />
+                    {errorMsg}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="w-full btn-gradient py-4 rounded-2xl font-montserrat font-bold text-base shadow-xl disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {status === "loading" ? (
+                    <><Icon name="Loader2" size={18} className="animate-spin" /> Отправляем...</>
+                  ) : (
+                    <><Icon name="Send" size={18} /> Отправить сообщение</>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="space-y-6">
