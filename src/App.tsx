@@ -6,6 +6,8 @@ const IMG_VILLA = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6c
 const IMG_STUDIO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/05525042-ec8a-4986-b7da-dc55ce5202cd.jpg";
 
 const ADMIN_FEEDBACK_URL = "https://functions.poehali.dev/7d47961e-81b7-4bc2-aca4-cb763e3701fb";
+const ADMIN_AUTH_URL = "https://functions.poehali.dev/840cc584-7275-4a89-9a12-0dfe017678fd";
+const ADMIN_TOKEN_KEY = "naimdom_admin_token";
 
 type Page = "home" | "catalog" | "profile" | "contacts" | "admin";
 
@@ -794,7 +796,103 @@ type FeedbackItem = {
   created_at: string | null;
 };
 
+function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
+  const [form, setForm] = useState({ login: "", password: "" });
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [showPass, setShowPass] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+    try {
+      const res = await fetch(ADMIN_AUTH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const raw = await res.json();
+      const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (!res.ok || !data.ok) { setStatus("error"); return; }
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+      onSuccess();
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div className="min-h-screen pt-20 bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md animate-fade-in">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <Icon name="Lock" size={28} className="text-white" />
+          </div>
+          <h1 className="font-montserrat font-black text-2xl text-gray-900">Вход в админку</h1>
+          <p className="text-gray-400 text-sm mt-1">Доступ только для администратора</p>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Логин</label>
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-violet-200">
+                <Icon name="User" size={16} className="text-violet-400 shrink-0" />
+                <input
+                  required
+                  autoComplete="username"
+                  placeholder="Введите логин"
+                  value={form.login}
+                  onChange={(e) => { setForm({ ...form, login: e.target.value }); setStatus("idle"); }}
+                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Пароль</label>
+              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-violet-200">
+                <Icon name="KeyRound" size={16} className="text-violet-400 shrink-0" />
+                <input
+                  required
+                  autoComplete="current-password"
+                  type={showPass ? "text" : "password"}
+                  placeholder="Введите пароль"
+                  value={form.password}
+                  onChange={(e) => { setForm({ ...form, password: e.target.value }); setStatus("idle"); }}
+                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="shrink-0">
+                  <Icon name={showPass ? "EyeOff" : "Eye"} size={16} className="text-gray-400 hover:text-gray-600" />
+                </button>
+              </div>
+            </div>
+
+            {status === "error" && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm animate-fade-in">
+                <Icon name="AlertCircle" size={15} />
+                Неверный логин или пароль
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full btn-gradient py-4 rounded-2xl font-montserrat font-bold text-base shadow-xl disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+            >
+              {status === "loading"
+                ? <><Icon name="Loader2" size={18} className="animate-spin" /> Проверяем...</>
+                : <><Icon name="LogIn" size={18} /> Войти</>
+              }
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdminPage() {
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem(ADMIN_TOKEN_KEY));
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -813,7 +911,9 @@ function AdminPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (authed) load(); }, [authed]);
+
+  if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
 
   const handleDelete = async (id: number) => {
     setDeleting(id);
@@ -857,6 +957,13 @@ function AdminPage() {
               title="Обновить"
             >
               <Icon name="RefreshCw" size={18} className="text-gray-500" />
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); setAuthed(false); }}
+              className="w-11 h-11 rounded-xl border border-red-100 bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm"
+              title="Выйти"
+            >
+              <Icon name="LogOut" size={18} className="text-red-500" />
             </button>
           </div>
         </div>
