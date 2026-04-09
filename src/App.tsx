@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
 const IMG_HERO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/a2d8dcf6-bd21-4baa-bd91-54c7d06803bb.jpg";
 const IMG_VILLA = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/bc138614-6763-497a-8080-0ba1b621adff.jpg";
 const IMG_STUDIO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/05525042-ec8a-4986-b7da-dc55ce5202cd.jpg";
 
-type Page = "home" | "catalog" | "profile" | "contacts";
+const ADMIN_FEEDBACK_URL = "https://functions.poehali.dev/7d47961e-81b7-4bc2-aca4-cb763e3701fb";
+
+type Page = "home" | "catalog" | "profile" | "contacts" | "admin";
 
 const listings = [
   { id: 1, title: "Апартаменты у моря", city: "Сочи", price: 4500, rooms: 2, type: "Квартира", img: IMG_HERO, rating: 4.9, reviews: 124, favorite: false, tag: "Хит" },
@@ -23,6 +25,7 @@ function Nav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
     { id: "catalog", label: "Каталог", icon: "Search" },
     { id: "profile", label: "Профиль", icon: "User" },
     { id: "contacts", label: "Контакты", icon: "Mail" },
+    { id: "admin", label: "Админ", icon: "LayoutDashboard" },
   ];
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
@@ -783,6 +786,221 @@ function ContactsPage() {
   );
 }
 
+type FeedbackItem = {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+  created_at: string | null;
+};
+
+function AdminPage() {
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [deleting, setDeleting] = useState<number | null>(null);
+  const [selected, setSelected] = useState<FeedbackItem | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(ADMIN_FEEDBACK_URL);
+      const raw = await res.json();
+      const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+      setItems(data.items || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleDelete = async (id: number) => {
+    setDeleting(id);
+    await fetch(`${ADMIN_FEEDBACK_URL}?id=${id}`, { method: "DELETE" });
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    if (selected?.id === id) setSelected(null);
+    setDeleting(null);
+  };
+
+  const formatDate = (iso: string | null) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleString("ru-RU", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  const filtered = items.filter(
+    (i) =>
+      i.name.toLowerCase().includes(search.toLowerCase()) ||
+      i.email.toLowerCase().includes(search.toLowerCase()) ||
+      i.message.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen pt-20 pb-12 bg-gray-50">
+      {/* Шапка */}
+      <div className="relative overflow-hidden py-10 mb-8 bg-white border-b border-gray-100 shadow-sm">
+        <div className="absolute inset-0 gradient-brand opacity-5" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-violet-600 font-semibold text-sm uppercase tracking-widest mb-1">Панель управления</p>
+            <h1 className="font-montserrat font-black text-3xl text-gray-900">Заявки обратной связи</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-violet-500 to-pink-500 text-white rounded-2xl px-5 py-3 text-center shadow-lg">
+              <div className="font-montserrat font-black text-2xl">{items.length}</div>
+              <div className="text-white/80 text-xs">всего заявок</div>
+            </div>
+            <button
+              onClick={load}
+              className="w-11 h-11 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
+              title="Обновить"
+            >
+              <Icon name="RefreshCw" size={18} className="text-gray-500" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Поиск */}
+        <div className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mb-6 max-w-md">
+          <Icon name="Search" size={18} className="text-violet-400 shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по имени, email или тексту..."
+            className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
+          />
+          {search && (
+            <button onClick={() => setSearch("")}>
+              <Icon name="X" size={16} className="text-gray-400 hover:text-gray-600" />
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg animate-pulse">
+              <Icon name="Loader2" size={28} className="text-white animate-spin" />
+            </div>
+            <p className="text-gray-400 font-golos text-sm">Загружаем заявки...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-3">
+            <Icon name="InboxIcon" size={52} className="text-gray-200" fallback="Inbox" />
+            <p className="font-montserrat font-bold text-lg text-gray-400">
+              {search ? "Ничего не найдено" : "Заявок пока нет"}
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-6 flex-col lg:flex-row">
+            {/* Список */}
+            <div className="flex-1 space-y-3">
+              {filtered.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => setSelected(item)}
+                  className={`bg-white rounded-2xl border shadow-sm p-5 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    selected?.id === item.id
+                      ? "border-violet-300 ring-2 ring-violet-100"
+                      : "border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center shrink-0 shadow-md text-white font-montserrat font-black text-sm">
+                        {item.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-montserrat font-bold text-gray-900 text-sm truncate">{item.name}</div>
+                        <div className="text-xs text-gray-400 truncate flex items-center gap-1">
+                          <Icon name="Mail" size={11} />
+                          {item.email}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-gray-400 hidden sm:block">{formatDate(item.created_at)}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                        disabled={deleting === item.id}
+                        className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
+                      >
+                        {deleting === item.id
+                          ? <Icon name="Loader2" size={14} className="text-red-400 animate-spin" />
+                          : <Icon name="Trash2" size={14} className="text-red-400" />
+                        }
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed">{item.message}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Детальный просмотр */}
+            {selected && (
+              <div className="w-full lg:w-96 shrink-0">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-20 animate-fade-in">
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="font-montserrat font-bold text-gray-900">Заявка #{selected.id}</h2>
+                    <button onClick={() => setSelected(null)} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center">
+                      <Icon name="X" size={16} className="text-gray-400" />
+                    </button>
+                  </div>
+
+                  <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg text-white font-montserrat font-black text-xl mx-auto mb-4">
+                    {selected.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  <div className="space-y-3 mb-5">
+                    <div className="bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Имя</div>
+                      <div className="font-montserrat font-bold text-gray-900 text-sm">{selected.name}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</div>
+                      <a href={`mailto:${selected.email}`} className="gradient-text font-semibold text-sm hover:underline">
+                        {selected.email}
+                      </a>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Дата</div>
+                      <div className="text-gray-700 text-sm">{formatDate(selected.created_at)}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Сообщение</div>
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <a
+                      href={`mailto:${selected.email}`}
+                      className="flex-1 btn-gradient py-2.5 rounded-xl font-montserrat font-bold text-sm text-center shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Icon name="Reply" size={15} />
+                      Ответить
+                    </a>
+                    <button
+                      onClick={() => handleDelete(selected.id)}
+                      disabled={deleting === selected.id}
+                      className="w-11 h-11 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      <Icon name="Trash2" size={16} className="text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState<Page>("home");
 
@@ -792,6 +1010,7 @@ export default function App() {
       case "catalog": return <CatalogPage />;
       case "profile": return <ProfilePage />;
       case "contacts": return <ContactsPage />;
+      case "admin": return <AdminPage />;
     }
   };
 
