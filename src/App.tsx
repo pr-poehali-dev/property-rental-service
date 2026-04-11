@@ -1,812 +1,892 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 
-const IMG_HERO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/a2d8dcf6-bd21-4baa-bd91-54c7d06803bb.jpg";
-const IMG_VILLA = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/bc138614-6763-497a-8080-0ba1b621adff.jpg";
-const IMG_STUDIO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/05525042-ec8a-4986-b7da-dc55ce5202cd.jpg";
-
-const ADMIN_FEEDBACK_URL = "https://functions.poehali.dev/7d47961e-81b7-4bc2-aca4-cb763e3701fb";
+const LEAD_URL = "https://functions.poehali.dev/121f6b7b-8bde-42ca-a589-80be857d4c3b";
 const ADMIN_AUTH_URL = "https://functions.poehali.dev/840cc584-7275-4a89-9a12-0dfe017678fd";
-const ADMIN_TOKEN_KEY = "naimdom_admin_token";
+const ADMIN_TOKEN_KEY = "geo_admin_token";
 
-type Page = "home" | "catalog" | "profile" | "contacts" | "admin";
+const IMG_HERO = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/448f5522-3a1f-4543-ae8c-2be7f55aceca.jpg";
+const IMG_BALCONY = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/89badd2e-8acf-4e3c-98b3-f2d135dde0a0.jpg";
+const IMG_IJZ = "https://cdn.poehali.dev/projects/e2475c43-0a0b-4159-ace3-1d6cc51d0fa0/files/d5c0cbe8-3e2a-4a31-90ba-6c7b06a7d0f1.jpg";
 
-const listings = [
-  { id: 1, title: "Апартаменты у моря", city: "Сочи", price: 4500, rooms: 2, type: "Квартира", img: IMG_HERO, rating: 4.9, reviews: 124, favorite: false, tag: "Хит" },
-  { id: 2, title: "Вилла с бассейном", city: "Краснодар", price: 12000, rooms: 4, type: "Дом", img: IMG_VILLA, rating: 5.0, reviews: 87, favorite: true, tag: "Топ" },
-  { id: 3, title: "Уютная студия", city: "Москва", price: 2800, rooms: 1, type: "Студия", img: IMG_STUDIO, rating: 4.7, reviews: 203, favorite: false, tag: "Новое" },
-  { id: 4, title: "Пентхаус в центре", city: "Санкт-Петербург", price: 8500, rooms: 3, type: "Квартира", img: IMG_HERO, rating: 4.8, reviews: 56, favorite: false, tag: "" },
-  { id: 5, title: "Загородный коттедж", city: "Казань", price: 6200, rooms: 5, type: "Дом", img: IMG_VILLA, rating: 4.6, reviews: 41, favorite: true, tag: "" },
-  { id: 6, title: "Студия в стиле лофт", city: "Екатеринбург", price: 2200, rooms: 1, type: "Студия", img: IMG_STUDIO, rating: 4.5, reviews: 78, favorite: false, tag: "" },
-];
-
-function Nav({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [logoClicks, setLogoClicks] = useState(0);
-  const links: { id: Page; label: string; icon: string }[] = [
-    { id: "home", label: "Главная", icon: "Home" },
-    { id: "catalog", label: "Каталог", icon: "Search" },
-    { id: "profile", label: "Профиль", icon: "User" },
-    { id: "contacts", label: "Контакты", icon: "Mail" },
-  ];
-
-  const handleLogoClick = () => {
-    const next = logoClicks + 1;
-    if (next >= 5) {
-      setLogoClicks(0);
-      setPage("admin");
-    } else {
-      setLogoClicks(next);
-      setTimeout(() => setLogoClicks(0), 3000);
-    }
-  };
-
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <button onClick={handleLogoClick} className="flex items-center gap-2 font-montserrat font-800 text-xl">
-          <span className="gradient-text font-black text-2xl">НаймиДом</span>
-        </button>
-        <div className="hidden md:flex items-center gap-1">
-          {links.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => setPage(l.id)}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 font-golos ${
-                page === l.id
-                  ? "btn-gradient shadow-lg"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-        <button
-          className="md:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <Icon name={menuOpen ? "X" : "Menu"} size={22} />
-        </button>
-      </div>
-      {menuOpen && (
-        <div className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
-          {links.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => { setPage(l.id); setMenuOpen(false); }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                page === l.id ? "btn-gradient" : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              <Icon name={l.icon} size={18} />
-              {l.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </nav>
-  );
-}
-
-function TagBadge({ tag }: { tag: string }) {
-  if (!tag) return null;
-  const colors: Record<string, string> = {
-    "Хит": "from-pink-500 to-rose-500",
-    "Топ": "from-amber-400 to-orange-500",
-    "Новое": "from-violet-500 to-purple-600",
-  };
-  return (
-    <span className={`absolute top-3 left-3 text-white text-xs font-bold px-2.5 py-1 rounded-full bg-gradient-to-r ${colors[tag] || "from-gray-500 to-gray-600"} shadow`}>
-      {tag}
-    </span>
-  );
-}
-
-function ListingCard({
-  listing,
-  onFavorite,
-}: {
-  listing: typeof listings[0];
-  onFavorite: (id: number) => void;
-}) {
-  return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover border border-gray-100">
-      <div className="relative h-52 overflow-hidden">
-        <img src={listing.img} alt={listing.title} className="w-full h-full object-cover" />
-        <TagBadge tag={listing.tag} />
-        <button
-          onClick={() => onFavorite(listing.id)}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full glass flex items-center justify-center transition-transform hover:scale-110"
-        >
-          <Icon
-            name="Heart"
-            size={18}
-            className={listing.favorite ? "text-red-500 fill-red-500" : "text-white"}
-          />
-        </button>
-        <div className="absolute bottom-3 left-3 glass rounded-xl px-2.5 py-1 text-white text-xs font-medium">
-          {listing.type}
-        </div>
-      </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-montserrat font-bold text-gray-900 text-base leading-tight">{listing.title}</h3>
-          <div className="flex items-center gap-1 shrink-0">
-            <Icon name="Star" size={13} className="text-amber-400 fill-amber-400" />
-            <span className="text-sm font-semibold text-gray-800">{listing.rating}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
-          <Icon name="MapPin" size={13} />
-          <span>{listing.city}</span>
-          <span className="mx-1">·</span>
-          <span>{listing.rooms} комн.</span>
-          <span className="mx-1">·</span>
-          <span>{listing.reviews} отзывов</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-montserrat font-black text-xl gradient-text">{listing.price.toLocaleString("ru")} ₽</span>
-            <span className="text-gray-400 text-sm"> / сут.</span>
-          </div>
-          <button className="btn-gradient text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-md">
-            Забронировать
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HomePage({ setPage }: { setPage: (p: Page) => void }) {
-  return (
-    <div className="min-h-screen">
-      <section className="relative min-h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={IMG_HERO} alt="Аренда жилья" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-900/80 via-purple-800/60 to-pink-700/50" />
-        </div>
-        <div className="absolute top-32 right-20 w-72 h-72 rounded-full bg-pink-500/20 blur-3xl animate-float" />
-        <div className="absolute bottom-20 left-10 w-56 h-56 rounded-full bg-violet-500/20 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-16">
-          <div className="max-w-2xl animate-fade-in">
-            <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-white/90 text-sm font-medium mb-6">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Более 12 000 объектов по всей России
-            </div>
-            <h1 className="font-montserrat font-black text-5xl sm:text-6xl text-white leading-tight mb-6">
-              Найди идеальное
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-300 to-amber-300">
-                место для жизни
-              </span>
-            </h1>
-            <p className="text-white/80 text-lg mb-10 font-golos leading-relaxed">
-              Тысячи проверенных объектов аренды — квартиры, дома, виллы. Бронируй напрямую у владельцев без комиссии.
-            </p>
-
-            <div className="glass rounded-2xl p-2 flex flex-col sm:flex-row gap-2">
-              <div className="flex items-center gap-3 bg-white/90 rounded-xl px-4 py-3 flex-1">
-                <Icon name="MapPin" size={18} className="text-violet-500 shrink-0" />
-                <input
-                  placeholder="Город или район"
-                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-3 bg-white/90 rounded-xl px-4 py-3 flex-1 sm:max-w-[180px]">
-                <Icon name="Calendar" size={18} className="text-pink-500 shrink-0" />
-                <input
-                  placeholder="Даты"
-                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
-                />
-              </div>
-              <button
-                onClick={() => setPage("catalog")}
-                className="btn-gradient font-montserrat font-bold text-sm px-6 py-3 rounded-xl shadow-xl"
-              >
-                Найти
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-8 left-0 right-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex gap-6 overflow-x-auto pb-2">
-              {[
-                { val: "12 000+", label: "объектов" },
-                { val: "98%", label: "довольных гостей" },
-                { val: "0%", label: "комиссия" },
-                { val: "24/7", label: "поддержка" },
-              ].map((s) => (
-                <div key={s.label} className="glass rounded-2xl px-5 py-3 text-white shrink-0">
-                  <div className="font-montserrat font-black text-2xl">{s.val}</div>
-                  <div className="text-white/70 text-xs mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-violet-600 font-semibold text-sm uppercase tracking-widest mb-2">Категории</p>
-            <h2 className="font-montserrat font-black text-3xl text-gray-900">Выбери тип жилья</h2>
-          </div>
-          <button onClick={() => setPage("catalog")} className="text-violet-600 font-semibold text-sm hover:underline flex items-center gap-1">
-            Все объекты <Icon name="ArrowRight" size={16} />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { icon: "Building2", label: "Квартиры", count: "5 200+", color: "from-violet-500 to-purple-600" },
-            { icon: "Home", label: "Дома", count: "3 100+", color: "from-pink-500 to-rose-600" },
-            { icon: "Hotel", label: "Виллы", count: "840+", color: "from-amber-400 to-orange-500" },
-            { icon: "Tent", label: "Глэмпинг", count: "620+", color: "from-emerald-400 to-teal-600" },
-          ].map((cat) => (
-            <button
-              key={cat.label}
-              onClick={() => setPage("catalog")}
-              className="group relative overflow-hidden rounded-2xl p-6 text-left card-hover bg-white border border-gray-100 shadow-sm"
-            >
-              <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center mb-4 shadow-lg`}>
-                <Icon name={cat.icon} size={22} className="text-white" />
-              </div>
-              <div className="font-montserrat font-bold text-gray-900 text-base">{cat.label}</div>
-              <div className="text-gray-500 text-sm mt-1">{cat.count}</div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="py-8 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-pink-500 font-semibold text-sm uppercase tracking-widest mb-2">Популярное</p>
-            <h2 className="font-montserrat font-black text-3xl text-gray-900">Топ объекты</h2>
-          </div>
-          <button onClick={() => setPage("catalog")} className="text-violet-600 font-semibold text-sm hover:underline flex items-center gap-1">
-            Смотреть все <Icon name="ArrowRight" size={16} />
-          </button>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.slice(0, 3).map((l) => (
-            <ListingCard key={l.id} listing={l} onFavorite={() => {}} />
-          ))}
-        </div>
-      </section>
-
-      <section className="py-16 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto relative overflow-hidden rounded-3xl gradient-brand p-12 text-center">
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white/10 blur-3xl" />
-          <div className="relative z-10">
-            <h2 className="font-montserrat font-black text-3xl sm:text-4xl text-white mb-4">
-              Сдаёшь жильё?
-            </h2>
-            <p className="text-white/80 text-lg mb-8 max-w-md mx-auto">
-              Размести объявление бесплатно и начни зарабатывать уже сегодня
-            </p>
-            <button className="bg-white text-violet-700 font-montserrat font-black px-8 py-4 rounded-2xl shadow-xl hover:scale-105 transition-transform text-base">
-              Разместить объявление
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <footer className="bg-gray-950 text-white py-12 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div>
-              <div className="font-montserrat font-black text-2xl gradient-text mb-2">НаймиДом</div>
-              <p className="text-gray-400 text-sm">Платформа аренды жилья без комиссий</p>
-            </div>
-            <div className="flex gap-8 text-gray-400 text-sm">
-              <span className="hover:text-white cursor-pointer transition-colors">О нас</span>
-              <span className="hover:text-white cursor-pointer transition-colors">Помощь</span>
-              <span className="hover:text-white cursor-pointer transition-colors">Блог</span>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-6 text-gray-600 text-xs">
-            © 2026 НаймиДом. Все права защищены.
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function CatalogPage() {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("Все");
-  const [priceMax, setPriceMax] = useState(15000);
-  const [favs, setFavs] = useState<Set<number>>(new Set([2, 5]));
-  const [showFavOnly, setShowFavOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("popular");
-
-  const types = ["Все", "Квартира", "Студия", "Дом"];
-
-  const toggleFav = (id: number) => {
-    setFavs((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
-      return next;
-    });
-  };
-
-  const filtered = listings
-    .map((l) => ({ ...l, favorite: favs.has(l.id) }))
-    .filter((l) => {
-      const matchSearch = l.title.toLowerCase().includes(search.toLowerCase()) || l.city.toLowerCase().includes(search.toLowerCase());
-      const matchType = typeFilter === "Все" || l.type === typeFilter;
-      const matchPrice = l.price <= priceMax;
-      const matchFav = !showFavOnly || favs.has(l.id);
-      return matchSearch && matchType && matchPrice && matchFav;
-    })
-    .sort((a, b) => {
-      if (sortBy === "price_asc") return a.price - b.price;
-      if (sortBy === "price_desc") return b.price - a.price;
-      if (sortBy === "rating") return b.rating - a.rating;
-      return b.reviews - a.reviews;
-    });
-
-  return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="relative overflow-hidden py-12 mb-8">
-        <div className="absolute inset-0 gradient-brand opacity-10" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <p className="text-violet-600 font-semibold text-sm uppercase tracking-widest mb-2">Каталог</p>
-          <h1 className="font-montserrat font-black text-4xl text-gray-900 mb-6">Все объекты аренды</h1>
-          <div className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 max-w-lg">
-            <Icon name="Search" size={18} className="text-violet-400 shrink-0" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск по названию или городу..."
-              className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600">
-                <Icon name="X" size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="w-full lg:w-64 shrink-0">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-20">
-              <h2 className="font-montserrat font-bold text-gray-900 mb-5 flex items-center gap-2">
-                <Icon name="SlidersHorizontal" size={18} className="text-violet-500" />
-                Фильтры
-              </h2>
-
-              <div className="mb-6">
-                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-3">Тип жилья</p>
-                <div className="flex flex-wrap gap-2">
-                  {types.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                        typeFilter === t
-                          ? "btn-gradient shadow-md"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Макс. цена</p>
-                  <span className="gradient-text font-montserrat font-bold text-sm">{priceMax.toLocaleString("ru")} ₽</span>
-                </div>
-                <input
-                  type="range"
-                  min={1000}
-                  max={15000}
-                  step={500}
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(Number(e.target.value))}
-                  className="w-full accent-violet-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>1 000 ₽</span>
-                  <span>15 000 ₽</span>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <button
-                  onClick={() => setShowFavOnly(!showFavOnly)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    showFavOnly ? "btn-gradient" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <Icon name="Heart" size={16} className={showFavOnly ? "text-white fill-white" : "text-red-400"} />
-                  Только избранные
-                  {favs.size > 0 && (
-                    <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${showFavOnly ? "bg-white/20 text-white" : "bg-red-100 text-red-500"}`}>
-                      {favs.size}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              <button
-                onClick={() => { setTypeFilter("Все"); setPriceMax(15000); setShowFavOnly(false); setSearch(""); }}
-                className="w-full text-center text-violet-600 text-sm font-medium hover:underline"
-              >
-                Сбросить фильтры
-              </button>
-            </div>
-          </aside>
-
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-              <p className="text-gray-500 text-sm font-golos">
-                Найдено: <span className="font-bold text-gray-900">{filtered.length}</span> объектов
-              </p>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:ring-2 focus:ring-violet-200 font-golos"
-              >
-                <option value="popular">По популярности</option>
-                <option value="rating">По рейтингу</option>
-                <option value="price_asc">Сначала дешевле</option>
-                <option value="price_desc">Сначала дороже</option>
-              </select>
-            </div>
-
-            {filtered.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">
-                <Icon name="SearchX" size={48} className="mx-auto mb-4 text-gray-300" />
-                <p className="font-montserrat font-bold text-lg text-gray-500">Ничего не найдено</p>
-                <p className="text-sm mt-2">Попробуйте изменить фильтры</p>
-              </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filtered.map((l) => (
-                  <ListingCard key={l.id} listing={l} onFavorite={toggleFav} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProfilePage() {
-  const [activeTab, setActiveTab] = useState<"bookings" | "favorites" | "settings">("bookings");
-  const favListings = listings.filter((l) => [2, 5].includes(l.id)).map((l) => ({ ...l, favorite: true }));
-
-  return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="relative overflow-hidden py-12 mb-8">
-        <div className="absolute inset-0 gradient-brand opacity-10" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-2xl gradient-brand flex items-center justify-center shadow-xl text-white font-montserrat font-black text-2xl">
-              АМ
-            </div>
-            <div>
-              <h1 className="font-montserrat font-black text-3xl text-gray-900">Алексей Морозов</h1>
-              <p className="text-gray-500 mt-1 flex items-center gap-2 text-sm">
-                <Icon name="Mail" size={14} />
-                alexey@example.com
-              </p>
-              <div className="flex items-center gap-1 mt-2">
-                <Icon name="Star" size={14} className="text-amber-400 fill-amber-400" />
-                <span className="text-sm font-semibold text-gray-700">4.9</span>
-                <span className="text-gray-400 text-sm">· Проверенный пользователь</span>
-              </div>
-            </div>
-            <button className="ml-auto hidden sm:flex items-center gap-2 btn-gradient px-5 py-2.5 rounded-xl font-semibold text-sm shadow-lg">
-              <Icon name="Edit3" size={16} />
-              Редактировать
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex gap-2 bg-gray-100 rounded-2xl p-1.5 mb-8 max-w-md">
-          {[
-            { id: "bookings", label: "Бронирования", icon: "Calendar" },
-            { id: "favorites", label: "Избранное", icon: "Heart" },
-            { id: "settings", label: "Настройки", icon: "Settings" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === tab.id ? "btn-gradient shadow-md" : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Icon name={tab.icon} size={15} />
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "bookings" && (
-          <div className="space-y-4">
-            {[
-              { title: "Апартаменты у моря", city: "Сочи", dates: "12–18 июня 2026", price: 27000, status: "Активно", img: IMG_HERO },
-              { title: "Уютная студия", city: "Москва", dates: "2–5 апреля 2026", price: 8400, status: "Завершено", img: IMG_STUDIO },
-            ].map((b) => (
-              <div key={b.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col sm:flex-row">
-                <img src={b.img} alt={b.title} className="w-full sm:w-40 h-36 sm:h-auto object-cover shrink-0" />
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-montserrat font-bold text-gray-900">{b.title}</h3>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${b.status === "Активно" ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                        {b.status}
-                      </span>
-                    </div>
-                    <p className="text-gray-400 text-sm mt-1 flex items-center gap-1">
-                      <Icon name="MapPin" size={12} /> {b.city}
-                    </p>
-                    <p className="text-gray-500 text-sm mt-1 flex items-center gap-1">
-                      <Icon name="Calendar" size={12} /> {b.dates}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="font-montserrat font-black text-lg gradient-text">{b.price.toLocaleString("ru")} ₽</span>
-                    {b.status === "Завершено" && (
-                      <button className="text-violet-600 text-sm font-semibold flex items-center gap-1 hover:underline">
-                        <Icon name="Star" size={14} /> Оставить отзыв
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === "favorites" && (
-          <div>
-            <div className="flex items-center gap-2 mb-6 text-gray-500 text-sm">
-              <Icon name="Heart" size={16} className="text-red-400 fill-red-400" />
-              {favListings.length} сохранённых объекта
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {favListings.map((l) => (
-                <ListingCard key={l.id} listing={l} onFavorite={() => {}} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "settings" && (
-          <div className="max-w-lg">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
-              {[
-                { label: "Имя", value: "Алексей Морозов", icon: "User" },
-                { label: "Email", value: "alexey@example.com", icon: "Mail" },
-                { label: "Телефон", value: "+7 900 123-45-67", icon: "Phone" },
-              ].map((f) => (
-                <div key={f.label}>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">{f.label}</label>
-                  <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
-                    <Icon name={f.icon} size={16} className="text-violet-400 shrink-0" />
-                    <span className="text-gray-800 text-sm font-golos">{f.value}</span>
-                    <Icon name="Edit2" size={14} className="ml-auto text-gray-400" />
-                  </div>
-                </div>
-              ))}
-              <button className="w-full btn-gradient py-3 rounded-xl font-montserrat font-bold text-base shadow-lg mt-4">
-                Сохранить изменения
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const FEEDBACK_URL = "https://functions.poehali.dev/a801230b-6055-4a2f-9ced-cd7abb0ea82b";
-
-function ContactsPage() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+/* ─── Quiz Modal ─────────────────────────────────────── */
+function QuizModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ city: "", income_goal: "", phone: "", telegram: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (open) { setStep(1); setForm({ city: "", income_goal: "", phone: "", telegram: "" }); setStatus("idle"); }
+  }, [open]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const submitLead = async () => {
     setStatus("loading");
-    setErrorMsg("");
     try {
-      const res = await fetch(FEEDBACK_URL, {
+      await fetch(LEAD_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-      if (!res.ok) { setStatus("error"); setErrorMsg(data.error || "Ошибка сервера"); return; }
       setStatus("success");
-      setForm({ name: "", email: "", message: "" });
     } catch {
       setStatus("error");
-      setErrorMsg("Не удалось отправить. Попробуйте позже.");
     }
   };
 
+  if (!open) return null;
+
+  const incomeOptions = [
+    { value: "low", label: "до 200 000 ₽" },
+    { value: "medium", label: "200 000 – 500 000 ₽" },
+    { value: "high", label: "500 000+ ₽" },
+  ];
+
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="relative overflow-hidden py-12 mb-12">
-        <div className="absolute inset-0 gradient-brand opacity-10" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <p className="text-violet-600 font-semibold text-sm uppercase tracking-widest mb-2">Связь</p>
-          <h1 className="font-montserrat font-black text-4xl text-gray-900">Мы всегда на связи</h1>
-        </div>
-      </div>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="relative w-full max-w-lg bg-page-surface rounded-3xl shadow-2xl p-8 animate-scale-in">
+        <button onClick={onClose} className="absolute top-5 right-5 w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-colors">
+          <Icon name="X" size={18} className="text-ink-muted" />
+        </button>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-12">
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
-            <h2 className="font-montserrat font-bold text-2xl text-gray-900 mb-6">Написать нам</h2>
+        {status === "success" ? (
+          <div className="text-center py-6 animate-fade-in">
+            <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+              <Icon name="CheckCircle" size={32} className="text-brand" />
+            </div>
+            <h3 className="font-montserrat font-black text-2xl text-ink mb-2">Заявка принята!</h3>
+            <p className="text-ink-muted">Отвечаем в течение 15 минут. Никакого спама. Звонок — только по делу.</p>
+            <button onClick={onClose} className="mt-6 btn-primary px-8 py-3 rounded-xl font-semibold font-montserrat">
+              Закрыть
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                {[1, 2, 3].map((s) => (
+                  <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-brand" : "bg-gray-200"}`} />
+                ))}
+              </div>
+              <p className="text-xs text-ink-muted font-semibold uppercase tracking-widest">Шаг {step} из 3</p>
+            </div>
 
-            {status === "success" ? (
-              <div className="text-center py-12 animate-fade-in">
-                <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Icon name="CheckCircle" size={32} className="text-white" />
-                </div>
-                <h3 className="font-montserrat font-black text-xl text-gray-900 mb-2">Сообщение отправлено!</h3>
-                <p className="text-gray-500 text-sm mb-6">Мы ответим вам в течение часа.</p>
+            {step === 1 && (
+              <div className="animate-fade-in">
+                <h3 className="font-montserrat font-black text-xl text-ink mb-1">Ваш город</h3>
+                <p className="text-ink-muted text-sm mb-5">Укажите город или регион, где хотите открыть бизнес</p>
+                <input
+                  autoFocus
+                  value={form.city}
+                  onChange={(e) => setForm({ ...form, city: e.target.value })}
+                  placeholder="Например: Хабаровск"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-ink bg-white outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all font-satoshi"
+                />
                 <button
-                  onClick={() => setStatus("idle")}
-                  className="btn-gradient px-6 py-2.5 rounded-xl font-semibold text-sm shadow-md"
+                  onClick={() => setStep(2)}
+                  disabled={!form.city.trim()}
+                  className="mt-4 w-full btn-primary py-3.5 rounded-xl font-semibold font-montserrat disabled:opacity-40"
                 >
-                  Отправить ещё
+                  Далее →
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Ваше имя</label>
-                  <input
-                    required
-                    placeholder="Алексей Морозов"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
-                  />
+            )}
+
+            {step === 2 && (
+              <div className="animate-fade-in">
+                <h3 className="font-montserrat font-black text-xl text-ink mb-1">Желаемая прибыль</h3>
+                <p className="text-ink-muted text-sm mb-5">Сколько хотите зарабатывать в месяц?</p>
+                <div className="grid gap-3">
+                  {incomeOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setForm({ ...form, income_goal: opt.value }); setStep(3); }}
+                      className={`w-full text-left px-5 py-4 rounded-xl border-2 font-semibold font-montserrat transition-all duration-150 ${
+                        form.income_goal === opt.value
+                          ? "border-brand bg-brand/5 text-brand"
+                          : "border-gray-200 bg-white text-ink hover:border-brand/40"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Email</label>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="animate-fade-in">
+                <h3 className="font-montserrat font-black text-xl text-ink mb-1">Ваши контакты</h3>
+                <p className="text-ink-muted text-sm mb-5">Пришлём финансовый план для {form.city || "вашего города"}</p>
+                <div className="space-y-3">
                   <input
-                    required
-                    type="email"
-                    placeholder="alex@example.com"
-                    value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="Телефон *"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-ink bg-white outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all font-satoshi"
                   />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Сообщение</label>
-                  <textarea
-                    required
-                    rows={5}
-                    placeholder="Опишите ваш вопрос или предложение..."
-                    value={form.message}
-                    onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 outline-none focus:ring-2 focus:ring-violet-200 font-golos text-sm resize-none"
+                  <input
+                    value={form.telegram}
+                    onChange={(e) => setForm({ ...form, telegram: e.target.value })}
+                    placeholder="Telegram (необязательно)"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-ink bg-white outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all font-satoshi"
                   />
                 </div>
                 {status === "error" && (
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
-                    <Icon name="AlertCircle" size={16} />
-                    {errorMsg}
-                  </div>
+                  <p className="mt-2 text-red-500 text-sm">Ошибка отправки. Попробуйте ещё раз.</p>
                 )}
                 <button
-                  type="submit"
-                  disabled={status === "loading"}
-                  className="w-full btn-gradient py-4 rounded-2xl font-montserrat font-bold text-base shadow-xl disabled:opacity-60 flex items-center justify-center gap-2"
+                  onClick={submitLead}
+                  disabled={!form.phone.trim() || status === "loading"}
+                  className="mt-4 w-full btn-primary py-3.5 rounded-xl font-semibold font-montserrat disabled:opacity-40 flex items-center justify-center gap-2"
                 >
-                  {status === "loading" ? (
-                    <><Icon name="Loader2" size={18} className="animate-spin" /> Отправляем...</>
-                  ) : (
-                    <><Icon name="Send" size={18} /> Отправить сообщение</>
-                  )}
+                  {status === "loading" ? <><Icon name="Loader2" size={18} className="animate-spin" /> Отправляем...</> : "Получить финансовый план →"}
                 </button>
-              </form>
+                <p className="mt-3 text-center text-xs text-ink-muted">Никакого спама. Звонок — только по делу.</p>
+              </div>
             )}
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h2 className="font-montserrat font-bold text-2xl text-gray-900 mb-6">Контактная информация</h2>
-              <div className="space-y-4">
-                {[
-                  { icon: "Phone", label: "Телефон", value: "+7 800 123-45-67", sub: "Бесплатно по России" },
-                  { icon: "Mail", label: "Email", value: "hello@naimdom.ru", sub: "Ответим в течение часа" },
-                  { icon: "MapPin", label: "Адрес", value: "Москва, Арбат, 10", sub: "Пн–Пт, 9:00–19:00" },
-                  { icon: "MessageCircle", label: "Телеграм", value: "@naimdom_support", sub: "Поддержка 24/7" },
-                ].map((c) => (
-                  <div key={c.label} className="flex items-start gap-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 card-hover cursor-pointer">
-                    <div className="w-11 h-11 rounded-xl gradient-brand flex items-center justify-center shrink-0 shadow-lg">
-                      <Icon name={c.icon} size={20} className="text-white" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{c.label}</div>
-                      <div className="font-montserrat font-bold text-gray-900 mt-0.5">{c.value}</div>
-                      <div className="text-gray-500 text-xs mt-0.5">{c.sub}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-violet-50 to-pink-50 rounded-2xl p-6">
-              <h3 className="font-montserrat font-bold text-gray-900 mb-4">Мы в соцсетях</h3>
-              <div className="flex gap-3">
-                {[
-                  { icon: "Instagram", label: "Instagram" },
-                  { icon: "Youtube", label: "YouTube" },
-                  { icon: "Twitter", label: "VK" },
-                ].map((s) => (
-                  <button
-                    key={s.label}
-                    className="w-11 h-11 rounded-xl btn-gradient flex items-center justify-center shadow-md hover:scale-110 transition-transform"
-                  >
-                    <Icon name={s.icon} size={18} className="text-white" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-16">
-          <h2 className="font-montserrat font-black text-3xl text-gray-900 mb-8 text-center">Частые вопросы</h2>
-          <div className="grid sm:grid-cols-2 gap-4 max-w-4xl mx-auto">
-            {[
-              { q: "Как забронировать объект?", a: "Найдите подходящий вариант, выберите даты и нажмите «Забронировать». Всё просто!" },
-              { q: "Нужно ли платить комиссию?", a: "Нет! Мы работаем без скрытых комиссий — платите только владельцу." },
-              { q: "Как отменить бронь?", a: "В личном кабинете в разделе «Бронирования» нажмите кнопку отмены." },
-              { q: "Как разместить объявление?", a: "Нажмите «Сдать жильё» на главной странице и заполните форму — займёт 5 минут." },
-            ].map((faq) => (
-              <div key={faq.q} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="font-montserrat font-bold text-gray-900 mb-2 flex items-start gap-2">
-                  <span className="gradient-text shrink-0">Q</span>
-                  {faq.q}
-                </div>
-                <p className="text-gray-500 text-sm leading-relaxed pl-5">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-type FeedbackItem = {
-  id: number;
-  name: string;
-  email: string;
-  message: string;
-  created_at: string | null;
-};
+/* ─── Header / Nav ────────────────────────────────────── */
+function Header({ onQuiz, onAdmin }: { onQuiz: () => void; onAdmin: () => void }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handler);
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  const navLinks = [
+    { label: "О нас", href: "#about" },
+    { label: "Направления", href: "#directions" },
+    { label: "Партнёры", href: "#cases" },
+    { label: "Контакты", href: "#cta" },
+  ];
+
+  const handleLogoClick = () => {
+    const next = logoClicks + 1;
+    if (next >= 5) { setLogoClicks(0); onAdmin(); }
+    else { setLogoClicks(next); setTimeout(() => setLogoClicks(0), 3000); }
+  };
+
+  const scrollTo = (href: string) => {
+    setMenuOpen(false);
+    document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  return (
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass shadow-sm border-b border-gray-100" : "bg-transparent"}`}>
+      <div className="container-lg flex items-center justify-between h-16">
+        <button onClick={handleLogoClick} className="flex items-center gap-2.5 select-none">
+          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+            <Icon name="Layers" size={16} className="text-white" />
+          </div>
+          <span className="font-montserrat font-black text-lg text-ink">Геометрия Уюта</span>
+        </button>
+
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map((l) => (
+            <button
+              key={l.href}
+              onClick={() => scrollTo(l.href)}
+              className="px-4 py-2 rounded-lg font-satoshi font-medium text-sm text-ink-muted hover:text-ink hover:bg-black/5 transition-all"
+            >
+              {l.label}
+            </button>
+          ))}
+        </nav>
+
+        <button
+          onClick={onQuiz}
+          className="hidden md:flex btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold font-montserrat items-center gap-2"
+        >
+          Получить план
+          <Icon name="ArrowRight" size={15} />
+        </button>
+
+        <button className="md:hidden p-2 rounded-lg hover:bg-black/5" onClick={() => setMenuOpen(!menuOpen)}>
+          <Icon name={menuOpen ? "X" : "Menu"} size={22} className="text-ink" />
+        </button>
+      </div>
+
+      {menuOpen && (
+        <div className="md:hidden bg-page-surface border-t border-gray-100 px-4 py-4 flex flex-col gap-1">
+          {navLinks.map((l) => (
+            <button
+              key={l.href}
+              onClick={() => scrollTo(l.href)}
+              className="text-left px-4 py-3 rounded-xl font-satoshi font-medium text-ink hover:bg-black/5 transition-colors"
+            >
+              {l.label}
+            </button>
+          ))}
+          <button onClick={() => { setMenuOpen(false); onQuiz(); }} className="mt-2 btn-primary px-5 py-3 rounded-xl text-sm font-semibold font-montserrat">
+            Получить план →
+          </button>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ─── Hero ────────────────────────────────────────────── */
+function HeroBlock({ onQuiz }: { onQuiz: () => void }) {
+  return (
+    <section id="hero" className="relative min-h-screen flex items-center bg-page-bg overflow-hidden">
+      <div className="absolute inset-0 gradient-brand-light" />
+      <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
+        <img src={IMG_HERO} alt="Остеклённый балкон" className="w-full h-full object-cover opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-page-bg via-page-bg/60 to-transparent" />
+      </div>
+
+      <div className="container-lg relative z-10 pt-24 pb-16 md:pt-32 md:pb-20">
+        <div className="max-w-xl">
+          <div className="chip chip-brand mb-5">🏆 18 лет на рынке Дальнего Востока</div>
+          <h1 className="font-montserrat font-black text-4xl md:text-5xl lg:text-6xl leading-[1.1] text-ink mb-5">
+            Бизнес на балконах и окнах на{" "}
+            <span className="text-brand">Дальнем Востоке</span> и по всей России
+          </h1>
+          <p className="text-ink-muted text-lg md:text-xl mb-3 leading-relaxed">
+            Чистая прибыль от 200 000 до 900 000 руб./мес. Без офиса. Без склада. Без опыта в ремонте.
+          </p>
+          <p className="text-ink text-base mb-8 leading-relaxed">
+            Мы 18 лет остекляем, утепляем и превращаем балконы и квартиры в уютные пространства. Теперь передаём вам всё: технологии, клиентов, систему продаж.
+          </p>
+
+          <button onClick={onQuiz} className="btn-primary px-8 py-4 rounded-xl font-montserrat font-bold text-base flex items-center gap-2 w-fit">
+            Получить финансовый план для моего города
+            <Icon name="ArrowRight" size={18} />
+          </button>
+
+          <div className="mt-8 flex flex-wrap gap-5">
+            {[
+              { icon: "ShieldCheck", text: "18 лет опыта" },
+              { icon: "MapPin", text: "7 городов-партнёров" },
+              { icon: "Clock", text: "Окупаемость 3–5 мес." },
+            ].map((b) => (
+              <div key={b.text} className="flex items-center gap-2 text-sm font-medium text-ink">
+                <Icon name={b.icon as "ShieldCheck"} size={16} className="text-brand" />
+                {b.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="lg:hidden w-full h-56 mt-0 relative overflow-hidden">
+        <img src={IMG_HERO} alt="Балкон" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-page-bg/80 to-transparent" />
+        <div className="absolute bottom-4 right-4 chip chip-amber">Средний чек: 170–500 тыс. ₽</div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Pain Points ─────────────────────────────────────── */
+function PainBlock() {
+  const cards = [
+    {
+      emoji: "😤",
+      title: "Работаете «на дядю» в строительстве",
+      text: "Умеете делать руками, знаете как замерить и поставить. Но всё — чужая прибыль. Хотите своё, но боитесь потеряться с нуля.",
+    },
+    {
+      emoji: "📈",
+      title: "Уже есть свой ремонтный бизнес",
+      text: "Клиенты есть, но нет системы. Реклама «на авось», цены занижены. Хочется выйти на другой уровень.",
+    },
+    {
+      emoji: "💼",
+      title: "Ищете надёжный бизнес с понятной моделью",
+      text: "Инвестиции есть, но не хочется рисковать. Нужна проверенная схема с поддержкой на каждом шаге.",
+    },
+  ];
+  return (
+    <section className="section bg-page-bg">
+      <div className="container-lg">
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-3">Узнаёте себя?</h2>
+        <p className="text-ink-muted text-center mb-12 max-w-xl mx-auto">Для всех трёх случаев у нас есть готовое решение — проверенное на Дальнем Востоке.</p>
+        <div className="grid md:grid-cols-3 gap-6">
+          {cards.map((c) => (
+            <div key={c.title} className="bg-white rounded-2xl p-6 border border-gray-100 card-hover">
+              <div className="text-4xl mb-4">{c.emoji}</div>
+              <h3 className="font-montserrat font-bold text-lg text-ink mb-2">{c.title}</h3>
+              <p className="text-ink-muted text-sm leading-relaxed">{c.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Founder / Team ──────────────────────────────────── */
+function FounderBlock({ onQuiz }: { onQuiz: () => void }) {
+  return (
+    <section id="about" className="section bg-page-surface">
+      <div className="container-lg">
+        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+          <div>
+            <div className="chip chip-brand mb-4">Основатель</div>
+            <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink mb-5">
+              Меня зовут Владимир. Я 18 лет строил этот бизнес с нуля.
+            </h2>
+            <p className="text-ink-muted leading-relaxed mb-4">
+              Начинали как небольшая бригада по замене окон во Владивостоке. За 18 лет — сотни остеклённых балконов, тысячи установленных окон, выстроенная система продаж.
+            </p>
+            <p className="text-ink-muted leading-relaxed mb-6">
+              Мы совершили все ошибки сами: работали без системы, теряли клиентов, тестировали рекламу за свой счёт. Всё это стоило нам миллионы рублей. Теперь вам не нужно платить эту цену.
+            </p>
+            <button onClick={onQuiz} className="btn-primary px-6 py-3.5 rounded-xl font-montserrat font-semibold flex items-center gap-2 w-fit">
+              Получить финансовый план <Icon name="ArrowRight" size={16} />
+            </button>
+          </div>
+          <div className="relative rounded-3xl overflow-hidden">
+            <img src={IMG_BALCONY} alt="Пример работы" className="w-full h-80 lg:h-96 object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/60 to-transparent flex items-end p-6">
+              <div className="flex gap-6">
+                {[{ v: "18 лет", l: "на рынке" }, { v: "500+", l: "объектов" }, { v: "7", l: "городов" }].map((s) => (
+                  <div key={s.l} className="text-white">
+                    <div className="font-montserrat font-black text-2xl">{s.v}</div>
+                    <div className="text-white/70 text-sm">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="font-montserrat font-black text-2xl text-ink text-center mb-8">Нас двое. И мы оба отвечаем за ваш результат.</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          {[
+            {
+              initials: "НМУ",
+              role: "Наставник по объектам и производству",
+              quote: "Я отвечаю за то, чтобы каждый объект был сдан качественно и в срок. Технологии замера, монтажа, работа с бригадой — моя зона.",
+            },
+            {
+              initials: "НОП",
+              role: "Наставник по маркетингу и управлению",
+              quote: "Я отвечаю за то, чтобы у вас всегда были заявки. Настраиваем рекламу, разбираем воронку, учим продавать — без этого никакой монтаж не поможет.",
+            },
+          ].map((m) => (
+            <div key={m.role} className="bg-white rounded-2xl p-6 border border-gray-100 flex gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center shrink-0">
+                <span className="font-montserrat font-black text-sm text-brand">{m.initials}</span>
+              </div>
+              <div>
+                <p className="font-semibold text-brand text-sm mb-1">{m.role}</p>
+                <p className="text-ink-muted text-sm leading-relaxed italic">«{m.quote}»</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-center text-ink-muted text-sm mt-6">Вы не остаётесь один на один с бизнесом. За каждым направлением стоит человек с многолетним опытом.</p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Directions ──────────────────────────────────────── */
+function DirectionsBlock({ onQuiz }: { onQuiz: () => void }) {
+  const directions = [
+    {
+      icon: "🏠",
+      title: "Балконы и лоджии под ключ",
+      desc: "Остекление, утепление, дизайнерская отделка, встроенная мебель, объединение с комнатой или кухней. От первого замера до финальной уборки.",
+      features: ["Остекление и утепление", "Дизайнерская отделка", "Встроенная мебель", "Объединение с комнатой", "Гарантия 3 года"],
+      check: "170 000 – 500 000 ₽",
+      margin: "Маржа 60–65%",
+      img: IMG_BALCONY,
+      wide: true,
+    },
+    {
+      icon: "🪟",
+      title: "Замена и установка окон",
+      desc: "ПВХ-конструкции для квартир, домов, офисов. Работаем с частными клиентами и застройщиками при сдаче МКД.",
+      features: ["ПВХ и алюминий", "Демонтаж и монтаж", "Работа с застройщиками", "Гарантия 5 лет"],
+      check: "35 000 – 500 000+ ₽",
+      margin: "15–30 заявок/мес.",
+      img: IMG_HERO,
+      wide: false,
+    },
+    {
+      icon: "🏡",
+      title: "Остекление ИЖС",
+      desc: "Алюминиевые и панорамные конструкции для частных домов. Клубные посёлки — один договор на весь посёлок.",
+      features: ["Алюминиевые конструкции", "Панорамное остекление", "Клубные посёлки", "Крупный чек"],
+      check: "от 1 500 000 ₽",
+      margin: "1 объект = 2–3 мес. выручки",
+      img: IMG_IJZ,
+      wide: false,
+    },
+  ];
+
+  return (
+    <section id="directions" className="section bg-page-bg">
+      <div className="container-lg">
+        <div className="chip chip-brand mb-4 mx-auto w-fit">3 направления</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-3">
+          Три направления. Один бизнес. Заказы круглый год.
+        </h2>
+        <p className="text-ink-muted text-center mb-12 max-w-2xl mx-auto">
+          💡 Три направления = три источника дохода. Даже если частные клиенты в один месяц просели — контракт с застройщиком или ИЖС держит кассу.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {directions.map((d, i) => (
+            <div key={d.title} className={`bg-white rounded-2xl overflow-hidden border border-gray-100 card-hover ${i === 0 ? "md:col-span-2" : ""}`}>
+              {i === 0 ? (
+                <div className="grid lg:grid-cols-2">
+                  <img src={d.img} alt={d.title} className="w-full h-56 lg:h-full object-cover" />
+                  <div className="p-7">
+                    <div className="text-3xl mb-3">{d.icon}</div>
+                    <h3 className="font-montserrat font-bold text-xl text-ink mb-2">{d.title}</h3>
+                    <p className="text-ink-muted text-sm mb-4 leading-relaxed">{d.desc}</p>
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {d.features.map((f) => (
+                        <span key={f} className="chip chip-brand text-xs">{f}</span>
+                      ))}
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="bg-brand/5 rounded-xl p-3">
+                        <div className="font-montserrat font-black text-brand text-base">{d.check}</div>
+                        <div className="text-ink-muted text-xs mt-0.5">средний чек</div>
+                      </div>
+                      <div className="bg-brand/5 rounded-xl p-3">
+                        <div className="font-montserrat font-black text-brand text-base">{d.margin}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <img src={d.img} alt={d.title} className="w-full h-44 object-cover" />
+                  <div className="p-6">
+                    <div className="text-2xl mb-2">{d.icon}</div>
+                    <h3 className="font-montserrat font-bold text-lg text-ink mb-2">{d.title}</h3>
+                    <p className="text-ink-muted text-sm mb-4 leading-relaxed">{d.desc}</p>
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {d.features.map((f) => (
+                        <span key={f} className="chip chip-brand text-xs">{f}</span>
+                      ))}
+                    </div>
+                    <div className="bg-brand/5 rounded-xl p-3">
+                      <div className="font-montserrat font-black text-brand">{d.check}</div>
+                      <div className="text-ink-muted text-xs mt-0.5">{d.margin}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Financial Model ─────────────────────────────────── */
+function FinanceBlock({ onQuiz }: { onQuiz: () => void }) {
+  const metrics = [
+    { value: "от 290 000 ₽", label: "Паушальный взнос", note: "единоразово" },
+    { value: "15 000 ₽/мес.", label: "Роялти", note: "со 2-го месяца" },
+    { value: "3–5 мес.", label: "Окупаемость", note: "среднее по сети" },
+    { value: "от 500 000 ₽", label: "Стартовый бюджет", note: "включая рекламу" },
+  ];
+
+  const rows = [
+    { label: "Заказов в месяц", start: "3–5", growth: "6–10", stable: "10–15+", hl: false },
+    { label: "Выручка", start: "300 – 600 тыс. ₽", growth: "700 – 1 300 тыс. ₽", stable: "1,5 – 2,5 млн ₽", hl: false },
+    { label: "Чистая прибыль", start: "120 – 250 тыс. ₽", growth: "280 – 520 тыс. ₽", stable: "500 – 900 тыс. ₽", hl: true },
+  ];
+
+  return (
+    <section id="finance" className="section gradient-dark text-white">
+      <div className="container-lg">
+        <div className="chip chip-dark mb-4 mx-auto w-fit">Финансовая модель</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-white text-center mb-3">
+          Сколько вы заработаете? Посчитаем честно.
+        </h2>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12 mt-10">
+          {metrics.map((m) => (
+            <div key={m.label} className="bg-white/10 rounded-2xl p-5 border border-white/10">
+              <div className="font-montserrat font-black text-xl text-white mb-1">{m.value}</div>
+              <div className="text-white/80 font-semibold text-sm">{m.label}</div>
+              <div className="text-white/50 text-xs mt-1">{m.note}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-white/10 rounded-2xl border border-white/10 overflow-hidden mb-8">
+          <div className="grid grid-cols-4 bg-white/10 text-white/70 text-xs font-semibold uppercase tracking-widest">
+            <div className="p-4">Показатель</div>
+            <div className="p-4">Старт (2–3 мес.)</div>
+            <div className="p-4">Рост (4–6 мес.)</div>
+            <div className="p-4">Устойчивый режим</div>
+          </div>
+          {rows.map((r) => (
+            <div key={r.label} className={`grid grid-cols-4 border-t border-white/10 ${r.hl ? "bg-brand/20" : ""}`}>
+              <div className={`p-4 font-semibold text-sm ${r.hl ? "text-white" : "text-white/80"}`}>{r.label}</div>
+              <div className={`p-4 text-sm ${r.hl ? "text-brand-light font-bold" : "text-white/70"}`}>{r.start}</div>
+              <div className={`p-4 text-sm ${r.hl ? "text-brand-light font-bold" : "text-white/70"}`}>{r.growth}</div>
+              <div className={`p-4 text-sm ${r.hl ? "text-brand-light font-bold" : "text-white/70"}`}>{r.stable}</div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-white/50 text-sm text-center mb-8">
+          ⚠️ Цифры взяты из реальных результатов партнёров. Не обещаем «гарантированный доход» — показываем, что есть у нас сейчас.
+        </p>
+
+        <div className="text-center">
+          <button onClick={onQuiz} className="bg-white text-brand px-8 py-4 rounded-xl font-montserrat font-bold text-base hover:bg-brand-light transition-colors">
+            Рассчитать финмодель для вашего города →
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Package ─────────────────────────────────────────── */
+function PackageBlock() {
+  const cols = [
+    {
+      icon: "📦",
+      title: "Запуск под ключ",
+      items: [
+        "Обучение замерам, монтажу, продажам (выезд на реальные объекты)",
+        "Готовый сайт вашего города",
+        "Настроенная рекламная кампания Яндекс.Директ",
+        "Скрипты продаж и работы с возражениями",
+        "База поставщиков с ценами ниже рынка на 15–20%",
+      ],
+    },
+    {
+      icon: "🚀",
+      title: "Поддержка на каждом этапе",
+      items: [
+        "Опытные наставники (НМУ и НОП) всегда на связи в рабочее время",
+        "Закрытый чат партнёров с разбором реальных кейсов",
+        "Готовое портфолио: 300+ фото объектов «до/после»",
+        "Ежемесячный маркетинговый аудит вашей рекламы",
+      ],
+    },
+  ];
+
+  return (
+    <section id="package" className="section bg-page-bg">
+      <div className="container-lg">
+        <div className="chip chip-brand mb-4 mx-auto w-fit">Что входит</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-12">
+          Вы покупаете не право на название. Вы покупаете готовую систему.
+        </h2>
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {cols.map((c) => (
+            <div key={c.title} className="bg-white rounded-2xl p-7 border border-gray-100">
+              <div className="text-3xl mb-3">{c.icon}</div>
+              <h3 className="font-montserrat font-bold text-lg text-ink mb-4">{c.title}</h3>
+              <ul className="space-y-3">
+                {c.items.map((item) => (
+                  <li key={item} className="flex gap-3 text-sm text-ink-muted">
+                    <Icon name="Check" size={16} className="text-brand shrink-0 mt-0.5" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="bg-brand/5 border border-brand/20 rounded-2xl p-6 flex gap-4">
+          <div className="text-3xl shrink-0">🔑</div>
+          <p className="text-ink leading-relaxed">
+            <strong>Опыт «Геометрии Уюта» — более 18 лет работы в ремонтно-строительной нише — зашит в каждый регламент.</strong> Вы получаете то, на что мы потратили годы.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Cases / Social Proof ────────────────────────────── */
+function CasesBlock({ onQuiz }: { onQuiz: () => void }) {
+  const cases = [
+    {
+      city: "Хабаровск",
+      name: "Роман",
+      age: 38,
+      quote: "До этого работал прорабом. Думал, что знаю о ремонте всё. Оказалось — совсем не умел продавать. С франшизой вышел на 340 000 руб. чистой прибыли на 4-й месяц. Сейчас — 2 бригады, 12 заказов в месяц.",
+      metrics: [
+        { label: "Месяц 1", value: "2 заказа" },
+        { label: "Месяц 6", value: "12 заказов" },
+        { label: "Прибыль сейчас", value: "540 000 ₽/мес.", hl: true },
+      ],
+    },
+    {
+      city: "Южно-Сахалинск",
+      name: "Дарья",
+      age: 34,
+      quote: "Никакого строительного опыта. Пришла из найма. Через 2 месяца после запуска окупила паушальный взнос. Всё уже было готово.",
+      metrics: [
+        { label: "Окупаемость", value: "3,5 месяца" },
+        { label: "Средний чек", value: "215 000 ₽" },
+        { label: "Прибыль сейчас", value: "290 000 ₽/мес.", hl: true },
+      ],
+    },
+    {
+      city: "Уссурийск",
+      name: "Алексей",
+      age: 42,
+      quote: "У меня уже был бизнес по установке окон. Взял франшизу, чтобы добавить балконное направление и систему. Оборот вырос в 2,3 раза за полгода.",
+      metrics: [
+        { label: "Рост выручки", value: "×2,3" },
+        { label: "Новое направление", value: "балконы" },
+        { label: "Доп. прибыль", value: "+420 000 ₽/мес.", hl: true },
+      ],
+    },
+  ];
+
+  return (
+    <section id="cases" className="section bg-page-surface">
+      <div className="container-lg">
+        <div className="chip chip-brand mb-4 mx-auto w-fit">Истории партнёров</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-12">
+          Вот что говорят люди, которые уже работают с нами
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {cases.map((c) => (
+            <div key={c.name} className="bg-white rounded-2xl p-6 border border-gray-100 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center font-montserrat font-black text-brand text-lg">
+                  {c.name[0]}
+                </div>
+                <div>
+                  <div className="font-montserrat font-bold text-ink">{c.name}, {c.age}</div>
+                  <div className="chip chip-brand text-xs">{c.city}</div>
+                </div>
+              </div>
+              <blockquote className="text-ink-muted text-sm leading-relaxed italic mb-5 flex-1">
+                «{c.quote}»
+              </blockquote>
+              <div className="grid grid-cols-3 gap-2">
+                {c.metrics.map((m) => (
+                  <div key={m.label} className={`rounded-xl p-2.5 text-center ${m.hl ? "bg-brand text-white" : "bg-gray-50"}`}>
+                    <div className={`font-montserrat font-black text-sm ${m.hl ? "text-white" : "text-ink"}`}>{m.value}</div>
+                    <div className={`text-xs mt-0.5 ${m.hl ? "text-white/70" : "text-ink-muted"}`}>{m.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Cities Map (text-based) ─────────────────────────── */
+function CitiesBlock({ onQuiz }: { onQuiz: () => void }) {
+  const cities = [
+    { name: "Владивосток", status: "hq", note: "Главный офис" },
+    { name: "Хабаровск", status: "active", partner: "Роман" },
+    { name: "Южно-Сахалинск", status: "active", partner: "Дарья" },
+    { name: "Уссурийск", status: "active", partner: "Алексей" },
+    { name: "Находка", status: "active" },
+    { name: "Комсомольск-на-Амуре", status: "active" },
+    { name: "Якутск", status: "active" },
+    { name: "Благовещенск", status: "available" },
+    { name: "Чита", status: "available" },
+    { name: "Иркутск", status: "available" },
+    { name: "Магадан", status: "available" },
+  ];
+
+  return (
+    <section id="map" className="section bg-page-bg">
+      <div className="container-lg">
+        <div className="chip chip-brand mb-4 mx-auto w-fit">География</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-3">
+          Партнёры уже работают в 7 городах
+        </h2>
+        <p className="text-ink-muted text-center mb-12 max-w-xl mx-auto">
+          На каждый город — один партнёр. Когда территория занята — следующий не получит эксклюзив.
+        </p>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
+          {cities.map((c) => (
+            <div key={c.name} className={`flex items-center gap-3 p-4 rounded-xl border ${
+              c.status === "hq" ? "bg-brand text-white border-brand" :
+              c.status === "active" ? "bg-white border-gray-100" :
+              "bg-gray-50 border-dashed border-gray-200"
+            }`}>
+              <div className={`w-3 h-3 rounded-full shrink-0 ${
+                c.status === "hq" ? "bg-white" :
+                c.status === "active" ? "bg-green-500" :
+                "bg-gray-300"
+              }`} />
+              <div className="flex-1 min-w-0">
+                <div className={`font-semibold text-sm ${c.status === "hq" ? "text-white" : "text-ink"}`}>{c.name}</div>
+                {(c.note || c.partner) && (
+                  <div className={`text-xs ${c.status === "hq" ? "text-white/70" : "text-ink-muted"}`}>
+                    {c.note || `Партнёр: ${c.partner}`}
+                  </div>
+                )}
+                {c.status === "available" && <div className="text-xs text-brand font-medium">Территория свободна</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <button onClick={onQuiz} className="btn-primary px-8 py-4 rounded-xl font-montserrat font-bold text-base">
+            Проверить, свободен ли мой город →
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ ─────────────────────────────────────────────── */
+function FaqBlock() {
+  const [open, setOpen] = useState<number | null>(0);
+  const items = [
+    {
+      q: "Нужен ли опыт в строительстве или ремонте?",
+      a: "Нет. Большинство наших партнёров пришли без строительного опыта. Вы управляете бизнесом — клиентами, замерщиком, бригадой. Технологиям обучаем сами, с выездом на объекты.",
+    },
+    {
+      q: "Откуда брать клиентов?",
+      a: "С первой недели — настраиваем Яндекс.Директ на ваш город. Параллельно помогаем с Авито, ВКонтакте и сарафанным радио. У наших партнёров в среднем 8–15 заявок в первый месяц.",
+    },
+    {
+      q: "Есть ли конкуренция?",
+      a: "Есть. Но 80% локальных компаний — это «ИП Василий» без системы, сайта и гарантий. Наше УТП — дизайнерский подход, гарантия 3 года, профессиональные фото «до/после» и 18 лет репутации на ДВ.",
+    },
+    {
+      q: "Что будет, если не пойдёт?",
+      a: "За всё время работы сети закрылось минимальное количество партнёров. В 9 из 10 случаев причина — недостаточный рекламный бюджет в первые 2 месяца. Поэтому честно говорим на старте: минимальный бюджет на рекламу — 50 000 руб./мес.",
+    },
+    {
+      q: "Почему Дальний Восток — выгодное место для этого бизнеса?",
+      a: "Льготы СПВ: страховые взносы 7,6% вместо 30%, льготные налоги на 5 лет. Близость Китая — материалы дешевле. Дефицит сильных игроков в нише отделки балконов и ИЖС.",
+    },
+  ];
+
+  return (
+    <section id="faq" className="section bg-page-surface">
+      <div className="container-md">
+        <h2 className="font-montserrat font-black text-3xl md:text-4xl text-ink text-center mb-12">
+          Честные ответы на главные вопросы
+        </h2>
+        <div className="space-y-3">
+          {items.map((item, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between p-6 text-left"
+              >
+                <span className="font-montserrat font-bold text-ink pr-4">{item.q}</span>
+                <Icon name={open === i ? "ChevronUp" : "ChevronDown"} size={20} className="text-brand shrink-0" />
+              </button>
+              {open === i && (
+                <div className="px-6 pb-6 text-ink-muted leading-relaxed text-sm animate-fade-in">
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── CTA / Quiz Block ────────────────────────────────── */
+function CtaBlock({ onQuiz }: { onQuiz: () => void }) {
+  const badges = [
+    { icon: "ShieldCheck", text: "18 лет опыта в нише" },
+    { icon: "TrendingUp", text: "Окупаемость 3–5 месяцев" },
+    { icon: "MapPin", text: "Эксклюзивная территория" },
+    { icon: "Award", text: "Знаем рынок ДВ изнутри" },
+  ];
+  return (
+    <section id="cta" className="section gradient-dark text-white">
+      <div className="container-md text-center">
+        <div className="chip chip-dark mb-5 mx-auto w-fit">Готовы начать?</div>
+        <h2 className="font-montserrat font-black text-3xl md:text-5xl text-white mb-4 leading-tight">
+          Получите финансовый план за 5 минут.
+        </h2>
+        <p className="text-white/70 text-lg mb-10 max-w-xl mx-auto">
+          Укажите ваш город и желаемый доход — пришлём расчёт, сколько нужно вложить и когда окупится.
+        </p>
+        <button onClick={onQuiz} className="bg-white text-brand px-10 py-4 rounded-xl font-montserrat font-bold text-lg hover:bg-brand-light transition-colors mb-10">
+          Получить финансовый план →
+        </button>
+        <div className="flex flex-wrap justify-center gap-6 mb-4">
+          {badges.map((b) => (
+            <div key={b.text} className="flex items-center gap-2 text-white/80 text-sm">
+              <Icon name={b.icon as "ShieldCheck"} size={16} className="text-brand-light" />
+              {b.text}
+            </div>
+          ))}
+        </div>
+        <p className="text-white/40 text-sm">Никакого спама. Звонок — только по делу.</p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Footer ──────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="bg-ink text-white/60 py-12">
+      <div className="container-lg">
+        <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
+          <div>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center">
+                <Icon name="Layers" size={16} className="text-white" />
+              </div>
+              <span className="font-montserrat font-black text-lg text-white">Геометрия Уюта</span>
+            </div>
+            <p className="text-sm">Франшиза на остекление балконов и окон</p>
+          </div>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <a href="/privacy" className="hover:text-white transition-colors">Политика конфиденциальности</a>
+            <a href="/offer" className="hover:text-white transition-colors">Публичная оферта</a>
+          </div>
+        </div>
+        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row justify-between gap-2 text-xs">
+          <p>© 2026 Геометрия Уюта. Все права защищены.</p>
+          <p>ИНН: PLACEHOLDER · ОГРН: PLACEHOLDER</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─── Admin Page ──────────────────────────────────────── */
+type Lead = { id: string; city: string; income_goal: string; phone: string; telegram: string; created_at: string | null };
 
 function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const [form, setForm] = useState({ login: "", password: "" });
@@ -827,43 +907,34 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
       if (!res.ok || !data.ok) { setStatus("error"); return; }
       localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
       onSuccess();
-    } catch {
-      setStatus("error");
-    }
+    } catch { setStatus("error"); }
   };
 
   return (
-    <div className="min-h-screen pt-20 bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="min-h-screen bg-page-bg flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-4 shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center mx-auto mb-4">
             <Icon name="Lock" size={28} className="text-white" />
           </div>
-          <h1 className="font-montserrat font-black text-2xl text-gray-900">Вход в админку</h1>
-          <p className="text-gray-400 text-sm mt-1">Доступ только для администратора</p>
+          <h1 className="font-montserrat font-black text-2xl text-ink">Вход в панель</h1>
         </div>
-
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Логин</label>
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-violet-200">
-                <Icon name="User" size={16} className="text-violet-400 shrink-0" />
-                <input
-                  required
-                  autoComplete="username"
-                  placeholder="Введите логин"
-                  value={form.login}
-                  onChange={(e) => { setForm({ ...form, login: e.target.value }); setStatus("idle"); }}
-                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
-                />
-              </div>
+              <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">Логин</label>
+              <input
+                required
+                autoComplete="username"
+                placeholder="Введите логин"
+                value={form.login}
+                onChange={(e) => { setForm({ ...form, login: e.target.value }); setStatus("idle"); }}
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all text-ink text-sm"
+              />
             </div>
-
             <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Пароль</label>
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-violet-200">
-                <Icon name="KeyRound" size={16} className="text-violet-400 shrink-0" />
+              <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-2">Пароль</label>
+              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition-all">
                 <input
                   required
                   autoComplete="current-password"
@@ -871,30 +942,22 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
                   placeholder="Введите пароль"
                   value={form.password}
                   onChange={(e) => { setForm({ ...form, password: e.target.value }); setStatus("idle"); }}
-                  className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
+                  className="bg-transparent outline-none text-ink placeholder-gray-400 w-full text-sm"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="shrink-0">
+                <button type="button" onClick={() => setShowPass(!showPass)}>
                   <Icon name={showPass ? "EyeOff" : "Eye"} size={16} className="text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
             </div>
-
             {status === "error" && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm animate-fade-in">
-                <Icon name="AlertCircle" size={15} />
-                Неверный логин или пароль
-              </div>
+              <div className="text-red-500 text-sm">Неверный логин или пароль</div>
             )}
-
             <button
               type="submit"
               disabled={status === "loading"}
-              className="w-full btn-gradient py-4 rounded-2xl font-montserrat font-bold text-base shadow-xl disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+              className="w-full btn-primary py-3.5 rounded-xl font-montserrat font-bold disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {status === "loading"
-                ? <><Icon name="Loader2" size={18} className="animate-spin" /> Проверяем...</>
-                : <><Icon name="LogIn" size={18} /> Войти</>
-              }
+              {status === "loading" ? <><Icon name="Loader2" size={18} className="animate-spin" /> Проверяем...</> : "Войти"}
             </button>
           </form>
         </div>
@@ -903,216 +966,97 @@ function AdminLogin({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function AdminPage() {
+function AdminPage({ onBack }: { onBack: () => void }) {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem(ADMIN_TOKEN_KEY));
-  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [items, setItems] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [deleting, setDeleting] = useState<number | null>(null);
-  const [selected, setSelected] = useState<FeedbackItem | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch(ADMIN_FEEDBACK_URL);
+      const res = await fetch(LEAD_URL);
       const raw = await res.json();
       const data = typeof raw === "string" ? JSON.parse(raw) : raw;
       setItems(data.items || []);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { if (authed) load(); }, [authed]);
 
   if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
 
-  const handleDelete = async (id: number) => {
-    setDeleting(id);
-    await fetch(`${ADMIN_FEEDBACK_URL}?id=${id}`, { method: "DELETE" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    if (selected?.id === id) setSelected(null);
-    setDeleting(null);
-  };
+  const incomeLabel = (v: string) =>
+    v === "low" ? "до 200 тыс." : v === "medium" ? "200–500 тыс." : v === "high" ? "500 тыс.+" : v;
 
-  const formatDate = (iso: string | null) => {
+  const fmt = (iso: string | null) => {
     if (!iso) return "—";
-    const d = new Date(iso);
-    return d.toLocaleString("ru-RU", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return new Date(iso).toLocaleString("ru-RU", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
   };
-
-  const filtered = items.filter(
-    (i) =>
-      i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.email.toLowerCase().includes(search.toLowerCase()) ||
-      i.message.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
-    <div className="min-h-screen pt-20 pb-12 bg-gray-50">
-      {/* Шапка */}
-      <div className="relative overflow-hidden py-10 mb-8 bg-white border-b border-gray-100 shadow-sm">
-        <div className="absolute inset-0 gradient-brand opacity-5" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-page-bg pb-12">
+      <div className="bg-white border-b border-gray-100 shadow-sm">
+        <div className="container-lg py-5 flex items-center justify-between">
           <div>
-            <p className="text-violet-600 font-semibold text-sm uppercase tracking-widest mb-1">Панель управления</p>
-            <h1 className="font-montserrat font-black text-3xl text-gray-900">Заявки обратной связи</h1>
+            <button onClick={onBack} className="text-ink-muted text-sm flex items-center gap-1 mb-1 hover:text-ink">
+              <Icon name="ArrowLeft" size={14} /> На сайт
+            </button>
+            <h1 className="font-montserrat font-black text-2xl text-ink">Заявки на франшизу</h1>
           </div>
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-violet-500 to-pink-500 text-white rounded-2xl px-5 py-3 text-center shadow-lg">
-              <div className="font-montserrat font-black text-2xl">{items.length}</div>
-              <div className="text-white/80 text-xs">всего заявок</div>
+            <div className="bg-brand/10 rounded-xl px-4 py-2 text-center">
+              <div className="font-montserrat font-black text-xl text-brand">{items.length}</div>
+              <div className="text-ink-muted text-xs">всего</div>
             </div>
-            <button
-              onClick={load}
-              className="w-11 h-11 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
-              title="Обновить"
-            >
-              <Icon name="RefreshCw" size={18} className="text-gray-500" />
+            <button onClick={load} className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <Icon name="RefreshCw" size={16} className="text-ink-muted" />
             </button>
             <button
               onClick={() => { localStorage.removeItem(ADMIN_TOKEN_KEY); setAuthed(false); }}
-              className="w-11 h-11 rounded-xl border border-red-100 bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors shadow-sm"
-              title="Выйти"
+              className="w-10 h-10 rounded-xl border border-red-100 bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
             >
-              <Icon name="LogOut" size={18} className="text-red-500" />
+              <Icon name="LogOut" size={16} className="text-red-500" />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Поиск */}
-        <div className="flex items-center gap-3 bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 mb-6 max-w-md">
-          <Icon name="Search" size={18} className="text-violet-400 shrink-0" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Поиск по имени, email или тексту..."
-            className="bg-transparent outline-none text-gray-800 placeholder-gray-400 w-full font-golos text-sm"
-          />
-          {search && (
-            <button onClick={() => setSearch("")}>
-              <Icon name="X" size={16} className="text-gray-400 hover:text-gray-600" />
-            </button>
-          )}
-        </div>
-
+      <div className="container-lg mt-8">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg animate-pulse">
-              <Icon name="Loader2" size={28} className="text-white animate-spin" />
-            </div>
-            <p className="text-gray-400 font-golos text-sm">Загружаем заявки...</p>
+          <div className="text-center py-20 text-ink-muted">
+            <Icon name="Loader2" size={28} className="animate-spin mx-auto mb-2" />
+            Загрузка...
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-3">
-            <Icon name="InboxIcon" size={52} className="text-gray-200" fallback="Inbox" />
-            <p className="font-montserrat font-bold text-lg text-gray-400">
-              {search ? "Ничего не найдено" : "Заявок пока нет"}
-            </p>
+        ) : items.length === 0 ? (
+          <div className="text-center py-20 text-ink-muted">
+            <Icon name="Inbox" size={36} className="mx-auto mb-3 opacity-40" />
+            <p>Заявок пока нет</p>
           </div>
         ) : (
-          <div className="flex gap-6 flex-col lg:flex-row">
-            {/* Список */}
-            <div className="flex-1 space-y-3">
-              {filtered.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelected(item)}
-                  className={`bg-white rounded-2xl border shadow-sm p-5 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selected?.id === item.id
-                      ? "border-violet-300 ring-2 ring-violet-100"
-                      : "border-gray-100 hover:border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl gradient-brand flex items-center justify-center shrink-0 shadow-md text-white font-montserrat font-black text-sm">
-                        {item.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-montserrat font-bold text-gray-900 text-sm truncate">{item.name}</div>
-                        <div className="text-xs text-gray-400 truncate flex items-center gap-1">
-                          <Icon name="Mail" size={11} />
-                          {item.email}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-gray-400 hidden sm:block">{formatDate(item.created_at)}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
-                        disabled={deleting === item.id}
-                        className="w-8 h-8 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
-                      >
-                        {deleting === item.id
-                          ? <Icon name="Loader2" size={14} className="text-red-400 animate-spin" />
-                          : <Icon name="Trash2" size={14} className="text-red-400" />
-                        }
-                      </button>
-                    </div>
+          <div className="grid gap-4">
+            {items.map((item) => (
+              <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <div className="text-xs text-ink-muted mb-0.5">Город</div>
+                    <div className="font-semibold text-ink">{item.city || "—"}</div>
                   </div>
-                  <p className="text-gray-500 text-sm mt-3 line-clamp-2 leading-relaxed">{item.message}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Детальный просмотр */}
-            {selected && (
-              <div className="w-full lg:w-96 shrink-0">
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-20 animate-fade-in">
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="font-montserrat font-bold text-gray-900">Заявка #{selected.id}</h2>
-                    <button onClick={() => setSelected(null)} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center">
-                      <Icon name="X" size={16} className="text-gray-400" />
-                    </button>
+                  <div>
+                    <div className="text-xs text-ink-muted mb-0.5">Телефон</div>
+                    <a href={`tel:${item.phone}`} className="font-semibold text-brand hover:underline">{item.phone}</a>
                   </div>
-
-                  <div className="w-14 h-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg text-white font-montserrat font-black text-xl mx-auto mb-4">
-                    {selected.name.charAt(0).toUpperCase()}
+                  <div>
+                    <div className="text-xs text-ink-muted mb-0.5">Telegram</div>
+                    <div className="font-semibold text-ink">{item.telegram || "—"}</div>
                   </div>
-
-                  <div className="space-y-3 mb-5">
-                    <div className="bg-gray-50 rounded-xl px-4 py-3">
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Имя</div>
-                      <div className="font-montserrat font-bold text-gray-900 text-sm">{selected.name}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl px-4 py-3">
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Email</div>
-                      <a href={`mailto:${selected.email}`} className="gradient-text font-semibold text-sm hover:underline">
-                        {selected.email}
-                      </a>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl px-4 py-3">
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Дата</div>
-                      <div className="text-gray-700 text-sm">{formatDate(selected.created_at)}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl px-4 py-3">
-                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Сообщение</div>
-                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selected.message}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <a
-                      href={`mailto:${selected.email}`}
-                      className="flex-1 btn-gradient py-2.5 rounded-xl font-montserrat font-bold text-sm text-center shadow-md flex items-center justify-center gap-2"
-                    >
-                      <Icon name="Reply" size={15} />
-                      Ответить
-                    </a>
-                    <button
-                      onClick={() => handleDelete(selected.id)}
-                      disabled={deleting === selected.id}
-                      className="w-11 h-11 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
-                    >
-                      <Icon name="Trash2" size={16} className="text-red-500" />
-                    </button>
+                  <div>
+                    <div className="text-xs text-ink-muted mb-0.5">Желаемая прибыль</div>
+                    <div className="chip chip-brand">{incomeLabel(item.income_goal)}</div>
                   </div>
                 </div>
+                <div className="text-xs text-ink-muted whitespace-nowrap">{fmt(item.created_at)}</div>
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -1120,23 +1064,30 @@ function AdminPage() {
   );
 }
 
+/* ─── App ─────────────────────────────────────────────── */
 export default function App() {
-  const [page, setPage] = useState<Page>("home");
+  const [quizOpen, setQuizOpen] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
-  const renderPage = () => {
-    switch (page) {
-      case "home": return <HomePage setPage={setPage} />;
-      case "catalog": return <CatalogPage />;
-      case "profile": return <ProfilePage />;
-      case "contacts": return <ContactsPage />;
-      case "admin": return <AdminPage />;
-    }
-  };
+  if (showAdmin) return <AdminPage onBack={() => setShowAdmin(false)} />;
 
   return (
-    <div className="font-golos bg-background">
-      <Nav page={page} setPage={setPage} />
-      <main>{renderPage()}</main>
-    </div>
+    <>
+      <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
+      <Header onQuiz={() => setQuizOpen(true)} onAdmin={() => setShowAdmin(true)} />
+      <main>
+        <HeroBlock onQuiz={() => setQuizOpen(true)} />
+        <PainBlock />
+        <FounderBlock onQuiz={() => setQuizOpen(true)} />
+        <DirectionsBlock onQuiz={() => setQuizOpen(true)} />
+        <FinanceBlock onQuiz={() => setQuizOpen(true)} />
+        <PackageBlock />
+        <CasesBlock onQuiz={() => setQuizOpen(true)} />
+        <CitiesBlock onQuiz={() => setQuizOpen(true)} />
+        <FaqBlock />
+        <CtaBlock onQuiz={() => setQuizOpen(true)} />
+      </main>
+      <Footer />
+    </>
   );
 }
